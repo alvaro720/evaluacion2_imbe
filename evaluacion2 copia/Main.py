@@ -4,7 +4,6 @@ from tkinter import ttk, messagebox
 # ==================== IMPORTACIONES ====================
 from clases.Administrador import Administrador
 from clases.Empleado import Empleado
-from clases.Registro import Registro
 
 from Dao.DAOAdministrador import DAOAdministrador
 from Dao.DAOEmpleado import DAOEmpleado
@@ -29,7 +28,7 @@ class SistemaEcoTech:
         self.frame_actual = None
 
         self.crear_menu_superior()
-        self.mostrar_empleados()   # Empieza en Empleados
+        self.mostrar_empleados()
 
     def crear_menu_superior(self):
         menu = tk.Frame(self.root, bg="#34495e", height=65)
@@ -81,7 +80,7 @@ class SistemaEcoTech:
         self.cambiar_contenido(frame)
 
 
-# ====================== APP CRUD (ADMIN) ======================
+# ====================== ADMINISTRADOR ======================
 class AppCRUD:
     def __init__(self, parent, titulo, dao, Clase):
         self.parent = parent
@@ -102,12 +101,15 @@ class AppCRUD:
         self.var_rol = tk.StringVar(value="admin")
 
         campos = ["ID", "Nombre", "RUT", "Correo", "Contraseña", "Rol"]
-        for i, campo in enumerate(campos):
+        variables = [self.var_id, self.var_nombre, self.var_rut, self.var_correo, self.var_contrasena, self.var_rol]
+
+        for i, (campo, var) in enumerate(zip(campos, variables)):
             tk.Label(form, text=campo+":", bg="#34495e", fg="white").grid(
                 row=i//2, column=(i%2)*2, sticky="e", padx=10, pady=8)
             state = "readonly" if campo == "ID" else "normal"
-            tk.Entry(form, textvariable=getattr(self, f"var_{campo.lower()}"), 
-                    state=state, width=40).grid(row=i//2, column=(i%2)*2 + 1, padx=10, pady=8)
+            show = "*" if campo == "Contraseña" else ""
+            tk.Entry(form, textvariable=var, state=state, width=40, show=show).grid(
+                row=i//2, column=(i%2)*2 + 1, padx=10, pady=8)
 
         btn_frame = tk.Frame(self.parent, bg="#2c3e50")
         btn_frame.pack(fill="x", pady=10)
@@ -124,15 +126,57 @@ class AppCRUD:
             self.tree.heading(col, text=h)
         self.tree.pack(fill="both", expand=True, padx=15, pady=10)
 
-    def registrar(self): messagebox.showinfo("Info", "Registrar Administrador")
-    def actualizar(self): messagebox.showinfo("Info", "Actualizar")
-    def eliminar(self): messagebox.showinfo("Info", "Eliminar")
-    def buscar(self): messagebox.showinfo("Info", "Buscar")
-    def listar(self): messagebox.showinfo("Info", "Listar")
-    def limpiar(self): pass
+    def registrar(self):
+        try:
+            obj = self.Clase(0, self.var_nombre.get(), self.var_rut.get(), 
+                           self.var_correo.get(), self.var_contrasena.get(), self.var_rol.get())
+            self.dao.registrar(obj)
+            messagebox.showinfo("Éxito", f"{self.titulo} registrado correctamente")
+            self.listar()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def listar(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        try:
+            lista = self.dao.obtener_todo()
+            for obj in lista:
+                self.tree.insert("", "end", values=(obj.get_id(), obj.get_nombre(), obj.get_rut(),
+                                                  obj.get_correo(), obj.get_rol()))
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def buscar(self):
+        rut = self.var_rut.get()
+        if not rut:
+            messagebox.showwarning("Aviso", "Ingrese RUT")
+            return
+        try:
+            obj = self.dao.buscar(rut)
+            if obj:
+                self.var_id.set(obj.get_id())
+                self.var_nombre.set(obj.get_nombre())
+                self.var_rut.set(obj.get_rut())
+                self.var_correo.set(obj.get_correo())
+                self.var_contrasena.set(obj.get_contrasena())
+                self.var_rol.set(obj.get_rol())
+            else:
+                messagebox.showinfo("No encontrado", "No existe ese RUT")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def actualizar(self): messagebox.showinfo("Info", "Actualizar (pendiente)")
+    def eliminar(self): messagebox.showinfo("Info", "Eliminar (pendiente)")
+    def limpiar(self): 
+        self.var_id.set("")
+        self.var_nombre.set("")
+        self.var_rut.set("")
+        self.var_correo.set("")
+        self.var_contrasena.set("")
 
 
-# ====================== APP EMPLEADO (ID AUTO) ======================
+# ====================== EMPLEADO ======================
 class AppEmpleado:
     def __init__(self, parent, dao):
         self.parent = parent
@@ -153,10 +197,10 @@ class AppEmpleado:
         self.var_departamento = tk.StringVar()
 
         campos = ["ID", "Nombre", "RUT", "Correo", "Teléfono", "Salario", "Fecha Inicio", "Departamento"]
-        var_list = [self.var_id, self.var_nombre, self.var_rut, self.var_correo,
-                   self.var_telefono, self.var_salario, self.var_fecha_inicio, self.var_departamento]
+        variables = [self.var_id, self.var_nombre, self.var_rut, self.var_correo,
+                    self.var_telefono, self.var_salario, self.var_fecha_inicio, self.var_departamento]
 
-        for i, (campo, var) in enumerate(zip(campos, var_list)):
+        for i, (campo, var) in enumerate(zip(campos, variables)):
             tk.Label(form, text=campo+":", bg="#34495e", fg="white").grid(
                 row=i//2, column=(i%2)*2, sticky="e", padx=10, pady=8)
             state = "readonly" if campo == "ID" else "normal"
@@ -178,14 +222,35 @@ class AppEmpleado:
             self.tree.heading(col, text=h)
         self.tree.pack(fill="both", expand=True, padx=15, pady=10)
 
-    def registrar(self): messagebox.showinfo("Info", "Empleado registrado (ID automático)")
-    def actualizar(self): messagebox.showinfo("Info", "Actualizar Empleado")
-    def eliminar(self): messagebox.showinfo("Info", "Eliminar Empleado")
-    def buscar(self): messagebox.showinfo("Info", "Buscar Empleado")
-    def listar(self): messagebox.showinfo("Info", "Listar Empleados")
+    def registrar(self):
+        try:
+            emp = Empleado(0, self.var_nombre.get(), self.var_rut.get(), self.var_correo.get(),
+                          "", self.var_telefono.get(), float(self.var_salario.get() or 0),
+                          self.var_fecha_inicio.get(), self.var_departamento.get())
+            self.dao.registrar(emp)
+            messagebox.showinfo("Éxito", "Empleado registrado (ID automático)")
+            self.listar()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def listar(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        try:
+            lista = self.dao.obtener_todo()
+            for e in lista:
+                self.tree.insert("", "end", values=(e.get_id(), e.get_nombre(), e.get_rut(),
+                                                  e.get_correo(), getattr(e, 'get_salario', lambda: "")()))
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def buscar(self): messagebox.showinfo("Info", "Buscar por RUT (pendiente)")
+    def actualizar(self): messagebox.showinfo("Info", "Actualizar (pendiente)")
+    def eliminar(self): messagebox.showinfo("Info", "Eliminar (pendiente)")
     def limpiar(self): pass
 
 
+# ====================== DEPARTAMENTO Y PROYECTO (SIMPLIFICADOS) ======================
 class AppDepartamento:
     def __init__(self, parent, dao):
         self.parent = parent
@@ -193,39 +258,18 @@ class AppDepartamento:
         self.crear_interfaz()
 
     def crear_interfaz(self):
-        form = tk.LabelFrame(self.parent, text="Datos del Departamento", padx=15, pady=15, bg="#34495e", fg="white")
-        form.pack(fill="x", padx=15, pady=10)
+        tk.Label(self.parent, text="Gestión de Departamentos", font=("Arial", 16, "bold"), bg="#2c3e50", fg="white").pack(pady=20)
+        tk.Button(self.parent, text="Crear Departamento", bg="#27ae60", fg="white", command=self.crear).pack(pady=5)
+        tk.Button(self.parent, text="Listar Departamentos", bg="#7f8c8d", command=self.listar).pack(pady=5)
 
-        self.var_id = tk.StringVar()
-        self.var_nombre = tk.StringVar()
-        self.var_gerente_rut = tk.StringVar()
+    def crear(self): 
+        nombre = tk.simpledialog.askstring("Nuevo Departamento", "Nombre del departamento:")
+        if nombre:
+            self.dao.registrar(nombre)
+            messagebox.showinfo("Éxito", "Departamento creado")
 
-        campos = ["ID", "Nombre Departamento", "RUT Gerente"]
-        vars_ = [self.var_id, self.var_nombre, self.var_gerente_rut]
-
-        for i, (campo, var) in enumerate(zip(campos, vars_)):
-            tk.Label(form, text=campo+":", bg="#34495e", fg="white").grid(
-                row=i, column=0, sticky="e", padx=10, pady=8)
-            state = "readonly" if campo == "ID" else "normal"
-            tk.Entry(form, textvariable=var, state=state, width=40).grid(row=i, column=1, padx=10, pady=8)
-
-        btn_frame = tk.Frame(self.parent, bg="#2c3e50")
-        btn_frame.pack(fill="x", pady=10)
-        for text, color, cmd in [("Crear", "#27ae60", self.crear),
-                                ("Listar", "#7f8c8d", self.listar),
-                                ("Eliminar", "#e74c3c", self.eliminar)]:
-            tk.Button(btn_frame, text=text, bg=color, fg="white", command=cmd).pack(side="left", padx=8)
-
-        self.tree = ttk.Treeview(self.parent, columns=("id","nombre","gerente"), show="headings")
-        self.tree.heading("id", text="ID")
-        self.tree.heading("nombre", text="Nombre")
-        self.tree.heading("gerente", text="Gerente (RUT)")
-        self.tree.pack(fill="both", expand=True, padx=15, pady=10)
-
-    def crear(self): messagebox.showinfo("Info", "Departamento creado")
-    def listar(self): messagebox.showinfo("Info", "Listar Departamentos")
-    def eliminar(self): messagebox.showinfo("Info", "Eliminar Departamento")
-
+    def listar(self):
+        messagebox.showinfo("Info", "Listar Departamentos (pendiente)")
 
 class AppProyecto:
     def __init__(self, parent, dao):
@@ -234,48 +278,27 @@ class AppProyecto:
         self.crear_interfaz()
 
     def crear_interfaz(self):
-        form = tk.LabelFrame(self.parent, text="Datos del Proyecto", padx=15, pady=15, bg="#34495e", fg="white")
-        form.pack(fill="x", padx=15, pady=10)
+        tk.Label(self.parent, text="Gestión de Proyectos", font=("Arial", 16, "bold"), bg="#2c3e50", fg="white").pack(pady=20)
+        tk.Button(self.parent, text="Crear Proyecto", bg="#27ae60", fg="white", command=self.crear).pack(pady=5)
+        tk.Button(self.parent, text="Listar Proyectos", bg="#7f8c8d", command=self.listar).pack(pady=5)
 
-        self.var_id = tk.StringVar()
-        self.var_nombre = tk.StringVar()
-        self.var_descripcion = tk.StringVar()
-        self.var_fecha = tk.StringVar()
+    def crear(self):
+        nombre = tk.simpledialog.askstring("Nuevo Proyecto", "Nombre del proyecto:")
+        if nombre:
+            self.dao.registrar(nombre)
+            messagebox.showinfo("Éxito", "Proyecto creado")
 
-        campos = ["ID", "Nombre Proyecto", "Descripción", "Fecha Inicio"]
-        vars_ = [self.var_id, self.var_nombre, self.var_descripcion, self.var_fecha]
-
-        for i, (campo, var) in enumerate(zip(campos, vars_)):
-            tk.Label(form, text=campo+":", bg="#34495e", fg="white").grid(
-                row=i, column=0, sticky="e", padx=10, pady=8)
-            state = "readonly" if campo == "ID" else "normal"
-            tk.Entry(form, textvariable=var, state=state, width=40).grid(row=i, column=1, padx=10, pady=8)
-
-        btn_frame = tk.Frame(self.parent, bg="#2c3e50")
-        btn_frame.pack(fill="x", pady=10)
-        for text, color, cmd in [("Crear", "#27ae60", self.crear),
-                                ("Listar", "#7f8c8d", self.listar),
-                                ("Eliminar", "#e74c3c", self.eliminar)]:
-            tk.Button(btn_frame, text=text, bg=color, fg="white", command=cmd).pack(side="left", padx=8)
-
-        self.tree = ttk.Treeview(self.parent, columns=("id","nombre","fecha"), show="headings")
-        self.tree.heading("id", text="ID")
-        self.tree.heading("nombre", text="Nombre")
-        self.tree.heading("fecha", text="Fecha Inicio")
-        self.tree.pack(fill="both", expand=True, padx=15, pady=10)
-
-    def crear(self): messagebox.showinfo("Info", "Proyecto creado")
-    def listar(self): messagebox.showinfo("Info", "Listar Proyectos")
-    def eliminar(self): messagebox.showinfo("Info", "Eliminar Proyecto")
+    def listar(self):
+        messagebox.showinfo("Info", "Listar Proyectos (pendiente)")
 
 
 class AppRegistroTiempo:
     def __init__(self, parent, dao):
         self.parent = parent
         self.dao = dao
-        tk.Label(parent, text="Registro de Tiempo", font=("Arial", 16, "bold"), bg="#2c3e50", fg="white").pack(pady=30)
-        tk.Button(parent, text="Registrar Tiempo", bg="#27ae60", fg="white", font=("Arial", 11), 
-                 command=lambda: messagebox.showinfo("Info", "Registrar Tiempo")).pack(pady=10)
+        tk.Label(parent, text="Registro de Tiempo", font=("Arial", 16, "bold"), bg="#2c3e50", fg="white").pack(pady=40)
+        tk.Button(parent, text="Registrar Nuevo Registro", bg="#27ae60", fg="white", 
+                 command=lambda: messagebox.showinfo("Info", "Registro de Tiempo - Próximamente")).pack(pady=10)
 
 
 if __name__ == "__main__":
