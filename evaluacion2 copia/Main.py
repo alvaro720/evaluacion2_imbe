@@ -17,10 +17,9 @@ class SistemaEcoTech:
     def __init__(self, root):
         self.root = root
         self.root.title("EcoTech Solutions - Sistema de Gestión")
-        self.root.geometry("1150x720")
+        self.root.geometry("1180x740")
         self.root.configure(bg="#2c3e50")
 
-        # DAOs
         self.dao_admin = DAOAdministrador()
         self.dao_empleado = DAOEmpleado()
         self.dao_depto = DAODepartamento()
@@ -30,10 +29,10 @@ class SistemaEcoTech:
         self.frame_actual = None
 
         self.crear_menu_superior()
-        self.mostrar_empleados()  # Empieza en Empleados
+        self.mostrar_empleados()   # Empieza en Empleados
 
     def crear_menu_superior(self):
-        menu = tk.Frame(self.root, bg="#34495e", height=60)
+        menu = tk.Frame(self.root, bg="#34495e", height=65)
         menu.pack(fill="x", pady=5)
         menu.pack_propagate(False)
 
@@ -82,8 +81,7 @@ class SistemaEcoTech:
         self.cambiar_contenido(frame)
 
 
-# ====================== CLASES ======================
-
+# ====================== APP CRUD (ADMIN) ======================
 class AppCRUD:
     def __init__(self, parent, titulo, dao, Clase):
         self.parent = parent
@@ -101,7 +99,7 @@ class AppCRUD:
         self.var_rut = tk.StringVar()
         self.var_correo = tk.StringVar()
         self.var_contrasena = tk.StringVar()
-        self.var_rol = tk.StringVar()
+        self.var_rol = tk.StringVar(value="admin")
 
         campos = ["ID", "Nombre", "RUT", "Correo", "Contraseña", "Rol"]
         for i, campo in enumerate(campos):
@@ -126,14 +124,15 @@ class AppCRUD:
             self.tree.heading(col, text=h)
         self.tree.pack(fill="both", expand=True, padx=15, pady=10)
 
-    def registrar(self): messagebox.showinfo("Info", f"Registrar {self.titulo}")
-    def actualizar(self): messagebox.showinfo("Info", f"Actualizar {self.titulo}")
-    def eliminar(self): messagebox.showinfo("Info", f"Eliminar {self.titulo}")
-    def buscar(self): messagebox.showinfo("Info", f"Buscar {self.titulo}")
-    def listar(self): messagebox.showinfo("Info", f"Listar {self.titulo}")
+    def registrar(self): messagebox.showinfo("Info", "Registrar Administrador")
+    def actualizar(self): messagebox.showinfo("Info", "Actualizar")
+    def eliminar(self): messagebox.showinfo("Info", "Eliminar")
+    def buscar(self): messagebox.showinfo("Info", "Buscar")
+    def listar(self): messagebox.showinfo("Info", "Listar")
     def limpiar(self): pass
 
 
+# ====================== APP EMPLEADO (ID AUTO) ======================
 class AppEmpleado:
     def __init__(self, parent, dao):
         self.parent = parent
@@ -144,7 +143,6 @@ class AppEmpleado:
         form = tk.LabelFrame(self.parent, text="Datos del Empleado", padx=15, pady=15, bg="#34495e", fg="white")
         form.pack(fill="x", padx=15, pady=10)
 
-        # Variables
         self.var_id = tk.StringVar()
         self.var_nombre = tk.StringVar()
         self.var_rut = tk.StringVar()
@@ -155,16 +153,16 @@ class AppEmpleado:
         self.var_departamento = tk.StringVar()
 
         campos = ["ID", "Nombre", "RUT", "Correo", "Teléfono", "Salario", "Fecha Inicio", "Departamento"]
-        var_nombres = ["var_id", "var_nombre", "var_rut", "var_correo", "var_telefono", 
-                      "var_salario", "var_fecha_inicio", "var_departamento"]
+        var_list = [self.var_id, self.var_nombre, self.var_rut, self.var_correo,
+                   self.var_telefono, self.var_salario, self.var_fecha_inicio, self.var_departamento]
 
-        for i, (campo, var_name) in enumerate(zip(campos, var_nombres)):
+        for i, (campo, var) in enumerate(zip(campos, var_list)):
             tk.Label(form, text=campo+":", bg="#34495e", fg="white").grid(
                 row=i//2, column=(i%2)*2, sticky="e", padx=10, pady=8)
-            tk.Entry(form, textvariable=getattr(self, var_name), width=40).grid(
+            state = "readonly" if campo == "ID" else "normal"
+            tk.Entry(form, textvariable=var, state=state, width=40).grid(
                 row=i//2, column=(i%2)*2 + 1, padx=10, pady=8)
 
-        # Botones
         btn_frame = tk.Frame(self.parent, bg="#2c3e50")
         btn_frame.pack(fill="x", pady=10)
         for text, color, cmd in [("Registrar", "#27ae60", self.registrar),
@@ -180,11 +178,11 @@ class AppEmpleado:
             self.tree.heading(col, text=h)
         self.tree.pack(fill="both", expand=True, padx=15, pady=10)
 
-    def registrar(self): messagebox.showinfo("Info", "Empleado registrado (pendiente)")
-    def actualizar(self): messagebox.showinfo("Info", "Actualizar")
-    def eliminar(self): messagebox.showinfo("Info", "Eliminar")
-    def buscar(self): messagebox.showinfo("Info", "Buscar")
-    def listar(self): messagebox.showinfo("Info", "Listar")
+    def registrar(self): messagebox.showinfo("Info", "Empleado registrado (ID automático)")
+    def actualizar(self): messagebox.showinfo("Info", "Actualizar Empleado")
+    def eliminar(self): messagebox.showinfo("Info", "Eliminar Empleado")
+    def buscar(self): messagebox.showinfo("Info", "Buscar Empleado")
+    def listar(self): messagebox.showinfo("Info", "Listar Empleados")
     def limpiar(self): pass
 
 
@@ -192,22 +190,92 @@ class AppDepartamento:
     def __init__(self, parent, dao):
         self.parent = parent
         self.dao = dao
-        tk.Label(parent, text="Gestión de Departamentos", font=("Arial", 16, "bold"), bg="#2c3e50", fg="white").pack(pady=30)
-        tk.Button(parent, text="Crear Departamento", bg="#27ae60", fg="white", command=lambda: messagebox.showinfo("Info", "Crear Departamento")).pack(pady=10)
+        self.crear_interfaz()
+
+    def crear_interfaz(self):
+        form = tk.LabelFrame(self.parent, text="Datos del Departamento", padx=15, pady=15, bg="#34495e", fg="white")
+        form.pack(fill="x", padx=15, pady=10)
+
+        self.var_id = tk.StringVar()
+        self.var_nombre = tk.StringVar()
+        self.var_gerente_rut = tk.StringVar()
+
+        campos = ["ID", "Nombre Departamento", "RUT Gerente"]
+        vars_ = [self.var_id, self.var_nombre, self.var_gerente_rut]
+
+        for i, (campo, var) in enumerate(zip(campos, vars_)):
+            tk.Label(form, text=campo+":", bg="#34495e", fg="white").grid(
+                row=i, column=0, sticky="e", padx=10, pady=8)
+            state = "readonly" if campo == "ID" else "normal"
+            tk.Entry(form, textvariable=var, state=state, width=40).grid(row=i, column=1, padx=10, pady=8)
+
+        btn_frame = tk.Frame(self.parent, bg="#2c3e50")
+        btn_frame.pack(fill="x", pady=10)
+        for text, color, cmd in [("Crear", "#27ae60", self.crear),
+                                ("Listar", "#7f8c8d", self.listar),
+                                ("Eliminar", "#e74c3c", self.eliminar)]:
+            tk.Button(btn_frame, text=text, bg=color, fg="white", command=cmd).pack(side="left", padx=8)
+
+        self.tree = ttk.Treeview(self.parent, columns=("id","nombre","gerente"), show="headings")
+        self.tree.heading("id", text="ID")
+        self.tree.heading("nombre", text="Nombre")
+        self.tree.heading("gerente", text="Gerente (RUT)")
+        self.tree.pack(fill="both", expand=True, padx=15, pady=10)
+
+    def crear(self): messagebox.showinfo("Info", "Departamento creado")
+    def listar(self): messagebox.showinfo("Info", "Listar Departamentos")
+    def eliminar(self): messagebox.showinfo("Info", "Eliminar Departamento")
+
 
 class AppProyecto:
     def __init__(self, parent, dao):
         self.parent = parent
         self.dao = dao
-        tk.Label(parent, text="Gestión de Proyectos", font=("Arial", 16, "bold"), bg="#2c3e50", fg="white").pack(pady=30)
-        tk.Button(parent, text="Crear Proyecto", bg="#27ae60", fg="white", command=lambda: messagebox.showinfo("Info", "Crear Proyecto")).pack(pady=10)
+        self.crear_interfaz()
+
+    def crear_interfaz(self):
+        form = tk.LabelFrame(self.parent, text="Datos del Proyecto", padx=15, pady=15, bg="#34495e", fg="white")
+        form.pack(fill="x", padx=15, pady=10)
+
+        self.var_id = tk.StringVar()
+        self.var_nombre = tk.StringVar()
+        self.var_descripcion = tk.StringVar()
+        self.var_fecha = tk.StringVar()
+
+        campos = ["ID", "Nombre Proyecto", "Descripción", "Fecha Inicio"]
+        vars_ = [self.var_id, self.var_nombre, self.var_descripcion, self.var_fecha]
+
+        for i, (campo, var) in enumerate(zip(campos, vars_)):
+            tk.Label(form, text=campo+":", bg="#34495e", fg="white").grid(
+                row=i, column=0, sticky="e", padx=10, pady=8)
+            state = "readonly" if campo == "ID" else "normal"
+            tk.Entry(form, textvariable=var, state=state, width=40).grid(row=i, column=1, padx=10, pady=8)
+
+        btn_frame = tk.Frame(self.parent, bg="#2c3e50")
+        btn_frame.pack(fill="x", pady=10)
+        for text, color, cmd in [("Crear", "#27ae60", self.crear),
+                                ("Listar", "#7f8c8d", self.listar),
+                                ("Eliminar", "#e74c3c", self.eliminar)]:
+            tk.Button(btn_frame, text=text, bg=color, fg="white", command=cmd).pack(side="left", padx=8)
+
+        self.tree = ttk.Treeview(self.parent, columns=("id","nombre","fecha"), show="headings")
+        self.tree.heading("id", text="ID")
+        self.tree.heading("nombre", text="Nombre")
+        self.tree.heading("fecha", text="Fecha Inicio")
+        self.tree.pack(fill="both", expand=True, padx=15, pady=10)
+
+    def crear(self): messagebox.showinfo("Info", "Proyecto creado")
+    def listar(self): messagebox.showinfo("Info", "Listar Proyectos")
+    def eliminar(self): messagebox.showinfo("Info", "Eliminar Proyecto")
+
 
 class AppRegistroTiempo:
     def __init__(self, parent, dao):
         self.parent = parent
         self.dao = dao
         tk.Label(parent, text="Registro de Tiempo", font=("Arial", 16, "bold"), bg="#2c3e50", fg="white").pack(pady=30)
-        tk.Button(parent, text="Registrar Tiempo", bg="#27ae60", fg="white", command=lambda: messagebox.showinfo("Info", "Registrar Tiempo")).pack(pady=10)
+        tk.Button(parent, text="Registrar Tiempo", bg="#27ae60", fg="white", font=("Arial", 11), 
+                 command=lambda: messagebox.showinfo("Info", "Registrar Tiempo")).pack(pady=10)
 
 
 if __name__ == "__main__":
